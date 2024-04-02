@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../configs.dart';
 import '../models/user.dart';
+import '../result.dart';
 
 class AuthState extends ChangeNotifier {
   User? _currentUser;
@@ -14,7 +15,7 @@ class AuthState extends ChangeNotifier {
   String? get token => _token;
   bool get isLoggedIn => _currentUser != null && _token != null;
 
-  Future<User?> login(String username, String password) async {
+  Future<Result<User, Object>?> login(String username, String password) async {
     final loginResponse = await http.post(
       Uri.parse('${Configs.baseUrl}/auth/login'),
       headers: {HttpHeaders.contentTypeHeader: 'application/json'},
@@ -23,7 +24,7 @@ class AuthState extends ChangeNotifier {
         'password': password,
       }),
     );
-
+    String error;
     if (loginResponse.statusCode == HttpStatus.ok) {
       _token = json.decode(loginResponse.body)['token'];
 
@@ -38,12 +39,19 @@ class AuthState extends ChangeNotifier {
       if (userResponse.statusCode == HttpStatus.ok) {
         _currentUser = User.fromJson(json.decode(userResponse.body));
         notifyListeners();
-        return _currentUser;
+        return Result.success(_currentUser!);
       }
+      error = 'Une erreur est survenue';
+
+    } else {
+      error = loginResponse.statusCode == HttpStatus.badRequest ||
+              loginResponse.statusCode == HttpStatus.unauthorized
+          ? 'Identifiant ou mot de passe incorrect'
+          : 'Une erreur est survenue';
     }
 
     logout();
-    return null;
+    return Result.failure(error);
   }
 
   Future<User?> signup(String username, String password) async {
@@ -60,8 +68,8 @@ class AuthState extends ChangeNotifier {
       _token = json.decode(registerResponse.body)['token'];
 
       final loginResponse = await login(username, password);
-      if (loginResponse != null) {
-        return loginResponse;
+      if (loginResponse!.isSuccess) {
+        return loginResponse.value;
       }
     }
 

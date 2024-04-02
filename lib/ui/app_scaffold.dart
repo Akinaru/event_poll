@@ -28,7 +28,7 @@ class AppScaffold extends StatelessWidget {
             DrawerHeader(
               child: authState.isLoggedIn
                   ? Text(
-                      'Bienvenue ${authState.currentUser!.username} !\nVous êtes ${authState.currentUser!.role}')
+                      'Bienvenue ${authState.currentUser!.username} !\nVotre rôle: ${authState.currentUser!.role}')
                   : const Text(
                       'Connectez-vous pour vous inscrire à un événement !'),
             ),
